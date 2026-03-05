@@ -11,6 +11,7 @@
 * Fix: make clicking on broadcast member-added messages work always
 * Fix: remove notification when a message is deleted by sender
 * Update to core 2.44.0
+* Add support for UnifiedPush
 
 ## v2.43.0
 2026-02

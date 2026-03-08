@@ -48,6 +48,7 @@ public class UnifiedPushService extends PushService {
     String token = serializeForNotifiers(pushEndpoint);
     if (token == null) {
       Log.e(TAG, "Couldn't serialize token, aborting.");
+      return;
     }
     getDcAccounts().setPushDeviceToken(token);
     KeepAliveService.maybeStopSelf(this);

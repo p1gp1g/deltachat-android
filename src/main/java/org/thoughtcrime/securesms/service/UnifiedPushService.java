@@ -37,6 +37,7 @@ import javax.annotation.Nullable;
 
 public class UnifiedPushService extends PushService {
   private static String TAG = "UnifiedPushService";
+  private static volatile String prefixedToken;
 
   @Override
   public void onNewEndpoint(@NonNull PushEndpoint pushEndpoint, @NonNull String _s) {
@@ -50,6 +51,7 @@ public class UnifiedPushService extends PushService {
       Log.e(TAG, "Couldn't serialize token, aborting.");
       return;
     }
+    prefixedToken = token;
     getDcAccounts().setPushDeviceToken(token);
     KeepAliveService.maybeStopSelf(this);
     WorkManager.getInstance(this).cancelAllWorkByTag(FetchWorker.periodicWorkTag);
@@ -159,5 +161,14 @@ public class UnifiedPushService extends PushService {
 
   public static void unregister(Context context) {
     UnifiedPush.unregister(context, INSTANCE_DEFAULT);
+  }
+
+  /**
+   * Only to log!
+   * @return
+   */
+  @Nullable
+  public static String getToken() {
+    return prefixedToken;
   }
 }

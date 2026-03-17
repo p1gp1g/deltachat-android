@@ -407,7 +407,8 @@ public class ApplicationContext extends Application {
               .setConstraints(constraints)
               .build();
       WorkManager.getInstance(this)
-          .enqueueUniquePeriodicWork(FetchWorker.periodicWorkTag, ExistingPeriodicWorkPolicy.KEEP, fetchWorkRequest);
+          .enqueueUniquePeriodicWork(
+              FetchWorker.periodicWorkTag, ExistingPeriodicWorkPolicy.KEEP, fetchWorkRequest);
     }
   }
 

@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Set;
 import org.thoughtcrime.securesms.BuildConfig;
 import org.thoughtcrime.securesms.connect.DcHelper;
+import org.thoughtcrime.securesms.notifications.FcmReceiveService;
 import org.thoughtcrime.securesms.preferences.widgets.NotificationPrivacyPreference;
 import org.unifiedpush.android.connector.UnifiedPush;
 
@@ -185,7 +186,7 @@ public class Prefs {
   }
 
   public static boolean isFcmPushEnabled(Context context) {
-    return BuildConfig.USE_PLAY_SERVICES;
+    return BuildConfig.USE_PLAY_SERVICES && FcmReceiveService.hasPlayServices(context);
   }
 
   public static boolean isHardCompressionEnabled(Context context) {

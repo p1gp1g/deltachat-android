@@ -6,11 +6,14 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.WorkerThread;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailabilityLight;
 import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
+import java.util.Set;
 import org.thoughtcrime.securesms.ApplicationContext;
 import org.thoughtcrime.securesms.BuildConfig;
 import org.thoughtcrime.securesms.service.FetchForegroundService;
@@ -22,6 +25,7 @@ public class FcmReceiveService extends FirebaseMessagingService {
   private static boolean initialized;
   private static volatile boolean triedRegistering;
   private static volatile String prefixedToken;
+  private static volatile Boolean hasPlayServices;
 
   public static void register(Context context) {
 
@@ -70,7 +74,8 @@ public class FcmReceiveService extends FirebaseMessagingService {
   // so usually, this should not block anything.
   // still, waitForRegisterFinished() needs to be called from a background thread.
   @WorkerThread
-  public static void waitForRegisterFinished() {
+  public static void waitForRegisterFinished(Context context) {
+    if (!hasPlayServices(context)) return;
     while (!triedRegistering) {
       Util.sleep(100);
     }
@@ -83,6 +88,26 @@ public class FcmReceiveService extends FirebaseMessagingService {
   @Nullable
   public static String getToken() {
     return prefixedToken;
+  }
+
+  public static boolean hasPlayServices(Context context) {
+    if (hasPlayServices != null) {
+      return hasPlayServices;
+    }
+    int availability =
+        GoogleApiAvailabilityLight.getInstance().isGooglePlayServicesAvailable(context);
+
+    hasPlayServices =
+        !Set.of(
+                // It's a Play Service free system
+                ConnectionResult.SERVICE_MISSING,
+                // The user has disabled the Play Services
+                ConnectionResult.SERVICE_DISABLED,
+                // GOS without Play Services returns SERVICE_INVALID with the Compatibility Layer
+                ConnectionResult.SERVICE_INVALID)
+            .contains(availability);
+    Log.d(TAG, "hasPlayServices=" + hasPlayServices + " availability=" + availability);
+    return hasPlayServices;
   }
 
   @WorkerThread

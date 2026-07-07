@@ -1,3 +1,5 @@
+Delta Chaton is a temporary fork of Delta Chat with UnifiedPush support.
+
 Delta Chat is a reliable decentralized instant messenger that is easy and fun to use for friends, family, groups and organizations. Delta Chat is developed by a dedicated FOSS contributor community that jointly releases refinements and new features several times a year, across many stores and platforms world-wide.
 
 Features at a glance:

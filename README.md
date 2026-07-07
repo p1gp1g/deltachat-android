@@ -1,12 +1,12 @@
-## Delta Chat Android Client
+## Delta Chaton
 
-This is the Android client for [Delta Chat](https://delta.chat/).
+Delta Chaton is a temporary fork of [Delta Chat Android Client](https://github.com/deltachat/deltachat-android) with [UnifiedPush](https://unifiedpush.org) support.
 
-[<img src="https://delta.chat/assets/badges/get-it-on-gplay.png" alt="Get it on Google Play" height="48">](https://play.google.com/store/apps/details?id=chat.delta)
-[<img src="https://delta.chat/assets/badges/get-it-on-fdroid.png" alt="Get it on F-Droid" height="48">](https://f-droid.org/app/com.b44t.messenger)
+This fork will likely be discontinued when the support will be merged upstream.
 
-Other download options and downloads for other platforms can be
-found at [get.delta.chat](https://get.delta.chat).
+The logo is made with the Noto-Emoji, [Apache2 licensed by Google](https://github.com/googlefonts/noto-emoji/blob/main/svg/LICENSE).
+
+---
 
 For the core library and other common info, please refer to the
 [Chatmail Core Library](https://github.com/chatmail/core).

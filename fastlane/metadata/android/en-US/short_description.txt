@@ -1,1 +1,1 @@
-Decentralized private messenger with chat-shared tools and games.
+Delta Chat with UnifiedPush: Decentralized private messenger.

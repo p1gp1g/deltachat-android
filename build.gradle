@@ -34,7 +34,7 @@ android {
         versionCode 745
         versionName "2.47.0"
 
-        applicationId "com.b44t.messenger"
+        applicationId "s1m.deltachaton"
         multiDexEnabled true
 
         minSdkVersion 21
@@ -132,7 +132,6 @@ android {
         }
         gplay {
             dimension "none"
-            applicationId "chat.delta"
             apply plugin: "com.google.gms.google-services"
             buildConfigField "boolean", "USE_PLAY_SERVICES", "true"
         }

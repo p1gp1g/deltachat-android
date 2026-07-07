@@ -1,0 +1,38 @@
+when:
+  - event: tag
+    ref: refs/tags/v*-chatontest*
+
+steps:
+  upstream_libs:
+    image: codeberg.org/unifiedpush/doc-ci
+    commands:
+      - make download_upstream_lib tag=$${CI_COMMIT_TAG%-*}
+
+  build:
+    image: codeberg.org/s1m/android-sdk-image:latest
+    commands:
+      - echo $$KEYSTORE | base64 -d > $$DC_RELEASE_STORE_FILE
+      - ./gradlew assembleFossRelease --stacktrace -PDC_RELEASE_STORE_FILE=$$DC_RELEASE_STORE_FILE -PDC_RELEASE_STORE_PASSWORD=$$DC_RELEASE_STORE_PASSWORD -PDC_RELEASE_KEY_ALIAS=$$DC_RELEASE_KEY_ALIAS -PDC_RELEASE_KEY_PASSWORD=$$DC_RELEASE_KEY_PASSWORD
+      - mv build/outputs/apk/foss/release/*.apk deltachaton.apk
+    environment:
+      # Base64 encoded keystore
+      KEYSTORE:
+        from_secret: keystore
+      DC_RELEASE_STORE_FILE: deltachaton.jks
+      DC_RELEASE_KEY_ALIAS: chaton
+      DC_RELEASE_STORE_PASSWORD:
+        from_secret: keystore_password
+      DC_RELEASE_KEY_PASSWORD:
+        from_secret: keystore_password
+
+  publish:
+    image: codeberg.org/s1m/woodpecker-upload:latest
+    settings:
+      # https://woodpecker-ci.org/docs/usage/environment#string-operations
+      # Substitute vX.Y.Z-chatontestAA to vX.Y.Z-chatonAA
+      tag: ${CI_COMMIT_TAG/test/}
+      draft: false
+      token:
+        from_secret: codeberg_token
+      file:
+        deltachaton.apk

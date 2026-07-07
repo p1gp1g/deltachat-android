@@ -1,0 +1,32 @@
+when:
+  - event: cron
+    cron: "@daily"
+    branch: chaton/main
+  - event: manual
+    branch: chaton/main
+
+clone:
+  git:
+    image: woodpeckerci/plugin-git
+    settings:
+      # We have ~25 commits, but let's be safe
+      # Increase in case of `fatal: refusing to merge unrelated histories`
+      depth: 50
+      # We don't need recursive cloning to compare
+      recursive: false
+      # We use tags to compare
+      tags: true
+
+steps:
+  # This image has everything we need
+  update:
+    image: codeberg.org/unifiedpush/doc-ci
+    commands:
+      - echo $$SSH_PRIVKEY | base64 -d > ~/.ssh/id_ed25519
+      - chmod 400 ~/.ssh/id_ed25519
+      - make may_fetch
+      - make update
+      - make push
+    environment:
+      SSH_PRIVKEY:
+        from_secret: ssh_privkey

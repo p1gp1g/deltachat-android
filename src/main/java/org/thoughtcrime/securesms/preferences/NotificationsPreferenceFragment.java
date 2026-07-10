@@ -5,6 +5,7 @@ import static android.app.Activity.RESULT_OK;
 import static org.thoughtcrime.securesms.notifications.UnifiedPushUtils.PUSH_ERROR_ACTION;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -44,6 +45,7 @@ public class NotificationsPreferenceFragment extends ListSummaryPreferenceFragme
 
   private CheckBoxPreference ignoreBattery;
   private CheckBoxPreference notificationsEnabled;
+  private Preference selectDistributor;
   private CheckBoxPreference mentionNotifEnabled;
   private CheckBoxPreference reliableService;
   private ActivityResultLauncher<Intent> ringtonePickerLauncher;
@@ -137,8 +139,25 @@ public class NotificationsPreferenceFragment extends ListSummaryPreferenceFragme
             boolean enabled = (Boolean) newValue;
             dcContext.setMuted(!enabled);
             notificationsEnabled.setSummary(getSummary(getContext(), false));
+            setUnifiedPushDistributorPref(getContext());
             return true;
           });
+    }
+
+    selectDistributor = this.findPreference("pref_unifiedpush_distrib");
+    if (selectDistributor != null) {
+      selectDistributor.setOnPreferenceClickListener(
+        (preference) -> {
+          Activity activity = getActivity();
+          if (activity != null) {
+            UnifiedPushUtils.tryPickUnifiedPushDistributor(activity, res -> {
+              if (res) {
+                setUnifiedPushDistributorPref(getContext());
+              }
+            });
+          }
+          return true;
+        });
     }
 
     mentionNotifEnabled = this.findPreference("pref_enable_mention_notifications");
@@ -182,6 +201,7 @@ public class NotificationsPreferenceFragment extends ListSummaryPreferenceFragme
     ignoreBattery.setChecked(isIgnoringBatteryOptimizations());
     notificationsEnabled.setChecked(!dcContext.isMuted());
     notificationsEnabled.setSummary(getSummary(getContext(), false));
+    setUnifiedPushDistributorPref(getContext());
     mentionNotifEnabled.setChecked(dcContext.isMentionsEnabled());
 
     // set without altering "unset" state of the preference
@@ -225,9 +245,11 @@ public class NotificationsPreferenceFragment extends ListSummaryPreferenceFragme
       // If the build supports UnifiedPush, we init it
       UnifiedPushUtils.mayInitUnifiedPush(getActivity(), s -> {
         notificationsEnabled.setSummary(getSummary(context, false));
+        setUnifiedPushDistributorPref(getContext());
       });
     }
     notificationsEnabled.setSummary(getSummary(context, false));
+    setUnifiedPushDistributorPref(getContext());
     return true;
   }
 
@@ -257,6 +279,24 @@ public class NotificationsPreferenceFragment extends ListSummaryPreferenceFragme
       }
 
       return true;
+    }
+  }
+
+  private void setUnifiedPushDistributorPref(Context context) {
+    if (selectDistributor != null) {
+      String currentDistributor = UnifiedPushUtils.getDistributorName(context);
+      if (
+        !dcContext.isMuted()
+          && !Prefs.reliableService(context)
+          && currentDistributor != null
+          && UnifiedPushUtils.countAvailableDistributors(context) > 1
+      ) {
+        selectDistributor.setVisible(true);
+        selectDistributor.setSummary(currentDistributor);
+      } else {
+        selectDistributor.setVisible(false);
+        selectDistributor.setSummary("");
+      }
     }
   }
 

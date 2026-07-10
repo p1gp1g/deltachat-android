@@ -2,15 +2,30 @@ package org.thoughtcrime.securesms.notifications;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.util.Log;
+
 import androidx.appcompat.app.AlertDialog;
 import org.thoughtcrime.securesms.ApplicationContext;
 import org.thoughtcrime.securesms.R;
+import org.thoughtcrime.securesms.connect.KeepAliveService;
+import org.thoughtcrime.securesms.service.UnifiedPushService;
 import org.thoughtcrime.securesms.util.Prefs;
 import org.thoughtcrime.securesms.util.Util;
 import org.unifiedpush.android.connector.UnifiedPush;
 import org.unifiedpush.android.connector.data.ResolvedDistributor;
 
+import javax.annotation.Nullable;
+
 public class UnifiedPushUtils {
+  private static String TAG = "UnifiedPushUtils";
+  /**
+   * Used to update the UI with broadcasts if something fails
+   */
+  public static final String PUSH_ERROR_ACTION = "push_event";
 
   private interface DialogCallback {
     void onCancel();
@@ -21,6 +36,10 @@ public class UnifiedPushUtils {
   public interface InitCallback {
     void onInit(InitStatus status);
   }
+
+  public interface TryPickCallback {
+    void run(boolean success);
+}
 
   public enum InitStatus {
     /** Push is configured */
@@ -38,6 +57,7 @@ public class UnifiedPushUtils {
    * @param initCallback Callback with [InitStatus]
    */
   public static void mayInitUnifiedPush(Activity activity, InitCallback initCallback) {
+    Log.d(TAG, "mayInitUnifiedPush");
     if (Prefs.isFcmPushEnabled(activity)) {
       initCallback.onInit(InitStatus.HasPush);
       return;
@@ -76,6 +96,7 @@ public class UnifiedPushUtils {
    * UnifiedPush on at least 2 distributors.
    */
   private static void selectUnifiedPushDistributor(Activity activity, InitCallback initCallback) {
+    Log.d(TAG, "selectUnifiedPushDistributor");
     DialogCallback callback =
         new DialogCallback() {
           private final Activity context = activity;
@@ -108,6 +129,7 @@ public class UnifiedPushUtils {
   }
 
   private static void introduceUnifiedPushDialog(Context context, DialogCallback callback) {
+    Log.d(TAG, "introduceUnifiedPushDialog");
     new AlertDialog.Builder(context)
         .setMessage(R.string.dialog_introduce_unifiedpush_selection)
         .setCancelable(true)
@@ -117,14 +139,103 @@ public class UnifiedPushUtils {
   }
 
   /**
+   * Try to use a non-default distributor.
+   *
+   * Runs `callback.run(true)` if a new distributor has been picked,
+   * else `callback.run(false)`
+   *
+   * Does not check if Push notifications, or UnifiedPush are enabled
+   *
+   * @param activity Activity
+   * @param callback Callback
+   */
+  public static void tryPickUnifiedPushDistributor(Activity activity, TryPickCallback callback) {
+    Log.d(TAG, "tryPickUnifiedPushDistributor");
+    UnifiedPush.tryPickDistributor(activity,  res -> {
+      if (res) {
+        ApplicationContext.getInstance(activity).initializePush();
+      }
+      callback.run(res);
+      return null;
+    });
+  }
+
+  /**
+   * @param context
+   * @param confirmed if we have already received an endpoint
+   * @return `true` if we have a distributor registered, with the confirmed condition
+   */
+  public static boolean hasPushDistributor(Context context, boolean confirmed) {
+    Log.d(TAG, "hasPushDistributor");
+    if (confirmed) {
+      return UnifiedPush.getAckDistributor(context) != null;
+    } else {
+      return UnifiedPush.getSavedDistributor(context) != null;
+    }
+  }
+
+  public static int countAvailableDistributors(Context context) {
+    Log.d(TAG, "countAvailableDistributor");
+    return UnifiedPush.getDistributors(context).size();
+  }
+
+  public static @Nullable String getDistributorName(Context context) {
+    String distributor = UnifiedPush.getSavedDistributor(context);
+    if (distributor == null) return  null;
+    try {
+      ApplicationInfo ai;
+      if (Build.VERSION.SDK_INT >= 33) {
+        ai = context.getPackageManager().getApplicationInfo(
+          distributor,
+          PackageManager.ApplicationInfoFlags.of(
+            PackageManager.GET_META_DATA
+          )
+        );
+      } else {
+        ai = context.getPackageManager().getApplicationInfo(distributor, 0);
+      }
+      return context.getPackageManager().getApplicationLabel(ai).toString();
+    } catch (PackageManager.NameNotFoundException e) {
+      Log.e(TAG, "Could not resolve app name", e);
+      return distributor;
+    }
+  }
+
+  /**
+   * If an error occur during registration,
+   * we disable UnifiedPush, reset reliable service pref
+   * and try to start the KeepAliveService
+   * @param context
+   */
+  public static void disableOnError(Context context) {
+    Prefs.disableUnifiedPush(context);
+    UnifiedPushService.unregister(context);
+    Prefs.resetReliableService(context);
+    context.sendBroadcast(
+      new Intent()
+        .setPackage(context.getPackageName())
+        .setAction(PUSH_ERROR_ACTION)
+    );
+    try {
+      KeepAliveService.maybeStartSelf(context);
+    } catch (Exception e) {
+      Log.e(TAG, "An error occurred while trying to start KeepAliveService", e);
+    }
+  }
+
+  /**
    * Returns directly if we don't have registered for UnifiedPush, or if we are already registered,
    * and we have received an endpoint. Else, wait for the endpoint, or a registration failed.
+   *
+   * Disable UnifiedPush if we don't receive one or the other within the timeout,
+   * and show a notification to the user.
    *
    * @param context
    */
   public static void waitForRegisterFinished(Context context) {
-    // Wait 5 secs at most
-    for (int i = 0; i < 50; ++i) {
+    Log.d(TAG, "waitForRegisterFinished");
+    // Wait 8 secs at most
+    for (int i = 0; i < 16; ++i) {
       // This is the distributor we registered to
       String saved = UnifiedPush.getSavedDistributor(context);
       // This is the distributor we registered to, which has sent an endpoint
@@ -135,7 +246,9 @@ public class UnifiedPushUtils {
       // Or if we received an endpoint (saved.equals(ack))
       // => return
       if (saved == null || saved.equals(ack)) return;
-      Util.sleep(100);
+      Util.sleep(500);
     }
+    disableOnError(context);
+    UnifiedPushNotifications.showRegistrationTimeout(context);
   }
 }

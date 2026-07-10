@@ -32,7 +32,7 @@ android {
 
     defaultConfig {
         versionCode 75100
-        versionName "2.53.0-chaton00"
+        versionName "2.53.0-chaton01"
 
         applicationId "s1m.deltachaton"
         multiDexEnabled true

@@ -43,6 +43,7 @@ import org.thoughtcrime.securesms.jobmanager.JobManager;
 import org.thoughtcrime.securesms.notifications.FcmReceiveService;
 import org.thoughtcrime.securesms.notifications.InChatSounds;
 import org.thoughtcrime.securesms.notifications.NotificationCenter;
+import org.thoughtcrime.securesms.notifications.UnifiedPushUtils;
 import org.thoughtcrime.securesms.service.UnifiedPushService;
 import org.thoughtcrime.securesms.util.AndroidSignalProtocolLogger;
 import org.thoughtcrime.securesms.util.DynamicTheme;
@@ -50,7 +51,6 @@ import org.thoughtcrime.securesms.util.Prefs;
 import org.thoughtcrime.securesms.util.SignalProtocolLoggerProvider;
 import org.thoughtcrime.securesms.util.Util;
 import org.thoughtcrime.securesms.webxdc.WebxdcGarbageCollectionWorker;
-import org.unifiedpush.android.connector.UnifiedPush;
 
 public class ApplicationContext extends MultiDexApplication {
   private static final String TAG = ApplicationContext.class.getSimpleName();
@@ -393,10 +393,10 @@ public class ApplicationContext extends MultiDexApplication {
     Log.d(TAG, "Initializing push");
     if (Prefs.isFcmPushEnabled(this)) {
       FcmReceiveService.register(this);
-      // We use getSavedDistrbutor and not getAckDistributor, because initializePush
+      // We use confirmed=false, because initializePush
       // is called after saving the distributor, but register is called by this function
       // We can't be acked before
-    } else if (UnifiedPush.getSavedDistributor(this) != null) {
+    } else if (UnifiedPushUtils.hasPushDistributor(this, false)) {
       UnifiedPushService.register(this);
     } else {
       Log.i(TAG, "FCM disabled at build time");

@@ -23,11 +23,11 @@ assert_rev:
 
 update: assert_rev
 	@set -eu ;\
-	LAST_LOCAL_TAG="$$(git tag --sort=creatordate | grep '^v[0-9]*\.[0-9]*\.[0-9]*-chaton[0-9]{2}$$' | tail -n1)" ;\
+	LAST_LOCAL_TAG="$$(git tag --sort=creatordate | grep -E '^v[0-9]*\.[0-9]*\.[0-9]*-chaton[0-9]{2}$$' | tail -n1)" ;\
 	echo "LAST_LOCAL_TAG=$$LAST_LOCAL_TAG" ;\
 	LAST_UPSTREAM_TAG="$$(git tag --sort=creatordate | grep '^v[0-9]*\.[0-9]*\.[0-9]*$$' | tail -n1)" ;\
 	echo "LAST_UPSTREAM_TAG=$$LAST_UPSTREAM_TAG" ;\
-	[[ "$$LAST_UPSTREAM_TAG-chaton" != "$$LAST_LOCAL_TAG" ]] && $(MAKE) new_merge tag=$$LAST_UPSTREAM_TAG revision=$(revision)
+	if [[ "$$LAST_UPSTREAM_TAG" != "$${LAST_LOCAL_TAG%%-*}" ]] ; then $(MAKE) new_merge tag=$$LAST_UPSTREAM_TAG revision=$(revision) ; fi
 
 new_merge: assert_rev
 	@if [ -z "$(tag)" ]; then echo "tag is not set" >&2; exit 1; fi;
@@ -54,7 +54,7 @@ patch: assert_rev
 	sed -i 's/Delta Chat/Delta Chaton/g' src/main/res/values*/strings.xml 
 
 push:
-	@if ! git branch --show-current | grep -Eq '^chaton/v[0-9]' ; then echo "Current branch is not a version branch" >&2; exit 1; fi
+	@if ! git branch --show-current | grep -Eq '^chaton/v[0-9]' ; then echo "Current branch is not a version branch" >&2; exit 0; fi
 	git remote set-url origin $(ORIGIN_SSH)
 	git push origin $$(git branch --show-current)
 	git push origin $(OUR_UPSTREAM_BRANCH)

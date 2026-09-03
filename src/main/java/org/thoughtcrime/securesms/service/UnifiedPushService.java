@@ -8,9 +8,9 @@ import android.content.Context;
 import android.os.Build;
 import android.util.Log;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.work.WorkManager;
-import javax.annotation.Nullable;
 import org.thoughtcrime.securesms.BuildConfig;
 import org.thoughtcrime.securesms.connect.FetchWorker;
 import org.thoughtcrime.securesms.connect.KeepAliveService;
@@ -50,7 +50,7 @@ public class UnifiedPushService extends PushService {
   @Override
   public void onMessage(@NonNull PushMessage _pushMessage, @NonNull String _s) {
     Log.d(TAG, "New push message received");
-    if (Build.VERSION.SDK_INT < 31) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
       onMessageLegacy();
     } else {
       onMessage31();
